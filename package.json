@@ -1,7 +1,6 @@
 {
   "name": "health-monitoring-system",
   "version": "1.0.0",
-  "description": "Health Monitoring System with ESP32, MAX30102, Neon PostgreSQL, and Vercel",
   "type": "module",
   "scripts": {
     "start": "node api/auth.js"
