@@ -1,1 +1,16 @@
 
+<script>
+const token=localStorage.getItem("token");
+if(!token){ alert("Login first"); window.location.href="login.html"; }
+
+fetch("/api/health",{headers:{"Authorization":"Bearer "+token}})
+.then(r=>r.json())
+.then(d=>{
+ new Chart(heart,{type:"line",data:{labels:d.map(x=>x.created_at),datasets:[{label:"Heart Rate",data:d.map(x=>x.heart_rate),borderColor:"#ef4444"}]}});
+ new Chart(spo2,{type:"line",data:{labels:d.map(x=>x.created_at),datasets:[{label:"SpO2",data:d.map(x=>x.spo2),borderColor:"#22c55e"}]}});
+});
+
+function logout(){ localStorage.removeItem("token"); window.location.href="login.html"; }
+</script>
+
+<button onclick="logout()">Logout</button>
