@@ -1,24 +1,48 @@
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const errorP = document.getElementById("error");
-  errorP.textContent = "";
+// التأكد من أن الحقول موجودة في الصفحة
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
 
-  try {
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
-    });
+// دالة تسجيل الدخول
+function login() {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
 
-    const data = await res.json();
-    if (res.status === 200 && data.token) {
-      localStorage.setItem("token", data.token);
-      window.location.href = "patients.html";
-    } else {
-      errorP.textContent = data.error;
-    }
-  } catch (err) {
-    errorP.textContent = "Server error";
+  // التحقق من عدم ترك الحقول فارغة
+  if (!email || !password) {
+    alert("Please enter email and password");
+    return;
   }
+
+  fetch("/api/auth", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json" // مهم جدًا عند إرسال JSON
+    },
+    body: JSON.stringify({ email, password })
+  })
+    .then(res => {
+      if (res.status === 400) {
+        throw new Error("Bad Request: Missing email or password");
+      } else if (res.status === 401) {
+        throw new Error("Unauthorized: Wrong email or password");
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.token) {
+        // تخزين التوكن في localStorage
+        localStorage.setItem("token", data.token);
+        // الانتقال إلى صفحة المرضى
+        window.location.href = "patients.html";
+      } else {
+        alert(data.error || "Login failed");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert(err.message);
+    });
 }
+
+// ربط الزر مع الدالة
+document.getElementById("loginBtn").addEventListener("click", login);
