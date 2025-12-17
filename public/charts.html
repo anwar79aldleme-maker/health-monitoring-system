@@ -2,38 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Charts</title>
+<title>Health Charts</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<h2>Health Charts</h2>
-<canvas id="spo2Chart"></canvas>
-<canvas id="hrChart"></canvas>
-<script>
-const token = localStorage.getItem("token");
-fetch("/api/health",{headers:{Authorization:"Bearer "+token}})
-.then(r=>r.json())
-.then(data=>{
-  const labels = data.map(d=>d.created_at);
-  const spo2Data = data.map(d=>d.spo2);
-  const hrData = data.map(d=>d.heartrate);
-
-  new Chart(document.getElementById("spo2Chart"),{
-    type:"line",
-    data:{
-      labels,
-      datasets:[{label:"SPO2",data:spo2Data,borderColor:"blue",fill:false}]
-    }
-  });
-  new Chart(document.getElementById("hrChart"),{
-    type:"line",
-    data:{
-      labels,
-      datasets:[{label:"Heart Rate",data:hrData,borderColor:"red",fill:false}]
-    }
-  });
-});
-</script>
+<div class="container">
+  <h2>Health Charts</h2>
+  <button onclick="logout()">Logout</button>
+  <canvas id="spo2Chart" width="400" height="200"></canvas>
+  <canvas id="heartrateChart" width="400" height="200"></canvas>
+</div>
+<script src="js/charts.js"></script>
 </body>
 </html>
-
