@@ -1,35 +1,54 @@
-import { pool } from "./db.js";
-import { verifyToken } from "./middleware.js";
+import pkg from "pg";
+import jwt from "jsonwebtoken";
+
+const { Pool } = pkg;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// تحقق من JWT
+function auth(req) {
+  const h = req.headers.authorization;
+  if(!h) throw "No token";
+  const token = h.split(" ")[1];
+  return jwt.verify(token, process.env.JWT_SECRET);
+}
 
 export default async function handler(req,res){
   try{
-    verifyToken(req,res);
-
-    if(req.method==="GET"){
-      const data = await pool.query("SELECT * FROM patients");
-      return res.json(data.rows);
-    }
+    auth(req);
+    const { name,email,phone,id } = req.body;
 
     if(req.method==="POST"){
-      const { name, phone, email } = req.body;
-      await pool.query("INSERT INTO patients(name,phone,email) VALUES($1,$2,$3)",[name,phone,email]);
-      return res.json({status:"added"});
+      await pool.query(
+        "INSERT INTO patients(name,email,phone) VALUES($1,$2,$3)",
+        [name,email,phone]
+      );
+      return res.json({status:"Patient added"});
+    }
+
+    if(req.method==="GET"){
+      const r = await pool.query("SELECT * FROM patients");
+      return res.json(r.rows);
     }
 
     if(req.method==="PUT"){
-      const { id,name,phone,email }=req.body;
-      await pool.query("UPDATE patients SET name=$1, phone=$2,email=$3 WHERE id=$4",[name,phone,email,id]);
-      return res.json({status:"updated"});
+      await pool.query(
+        "UPDATE patients SET name=$1,email=$2,phone=$3 WHERE id=$4",
+        [name,email,phone,id]
+      );
+      return res.json({status:"Patient updated"});
     }
 
     if(req.method==="DELETE"){
-      const { id } = req.body;
       await pool.query("DELETE FROM patients WHERE id=$1",[id]);
-      return res.json({status:"deleted"});
+      return res.json({status:"Patient deleted"});
     }
 
-    res.status(405).end();
+    res.status(405).json({error:"Method not allowed"});
+
   } catch(e){
-    res.status(401).json({error:e.message});
+    res.status(401).json({error:e.toString()});
   }
 }
