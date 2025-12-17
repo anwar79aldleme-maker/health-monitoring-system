@@ -1,18 +1,31 @@
-
-<script>
-const token=localStorage.getItem("token");
-if(!token){ alert("Login first"); window.location.href="login.html"; }
-
-function logout(){ localStorage.removeItem("token"); window.location.href="login.html"; }
-
-function load(){
- fetch("/api/patients",{headers:{"Authorization":"Bearer "+token}})
- .then(r=>r.json()).then(d=>{
-  tbl.innerHTML=`<tr><th>Name</th><th>Phone</th><th>Email</th></tr>`;
-  d.forEach(p=>tbl.innerHTML+=`<tr><td>${p.name}</td><td>${p.phone}</td><td>${p.email}</td></tr>`);
- });
-}
-load();
-</script>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Patients</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<h2>Patients</h2>
 <button onclick="logout()">Logout</button>
+<div id="patients-list"></div>
+<script src="js/app.js"></script>
+<script>
+function loadPatients(){
+  const token = localStorage.getItem("token");
+  fetch("/api/patients",{headers:{Authorization:"Bearer "+token}})
+    .then(r=>r.json())
+    .then(data=>{
+      const div=document.getElementById("patients-list");
+      div.innerHTML = JSON.stringify(data,null,2);
+    });
+}
+function logout(){
+  localStorage.removeItem("token");
+  window.location.href="login.html";
+}
+loadPatients();
+</script>
+</body>
+</html>
+
