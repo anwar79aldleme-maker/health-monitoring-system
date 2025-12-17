@@ -1,54 +1,48 @@
 import pkg from "pg";
 import jwt from "jsonwebtoken";
 
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const { Client } = pkg;
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
 
-// تحقق من JWT
-function auth(req) {
-  const h = req.headers.authorization;
-  if(!h) throw "No token";
-  const token = h.split(" ")[1];
+function verifyToken(req) {
+  const auth = req.headers.authorization;
+  if (!auth) return null;
+  const token = auth.split(" ")[1];
   return jwt.verify(token, process.env.JWT_SECRET);
 }
 
-export default async function handler(req,res){
-  try{
-    auth(req);
-    const { name,email,phone,id } = req.body;
+export default async function handler(req, res) {
+  try {
+    const user = verifyToken(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    if(req.method==="POST"){
-      await pool.query(
-        "INSERT INTO patients(name,email,phone) VALUES($1,$2,$3)",
-        [name,email,phone]
+    if (req.method === "GET") {
+      const result = await client.query("SELECT * FROM patients");
+      res.json(result.rows);
+    } else if (req.method === "POST") {
+      const { name, phone, email, device_name } = req.body;
+      const result = await client.query(
+        "INSERT INTO patients(name, phone, email, device_name) VALUES($1,$2,$3,$4) RETURNING *",
+        [name, phone, email, device_name]
       );
-      return res.json({status:"Patient added"});
-    }
-
-    if(req.method==="GET"){
-      const r = await pool.query("SELECT * FROM patients");
-      return res.json(r.rows);
-    }
-
-    if(req.method==="PUT"){
-      await pool.query(
-        "UPDATE patients SET name=$1,email=$2,phone=$3 WHERE id=$4",
-        [name,email,phone,id]
+      res.json(result.rows[0]);
+    } else if (req.method === "PUT") {
+      const { id, name, phone, email, device_name } = req.body;
+      const result = await client.query(
+        "UPDATE patients SET name=$1, phone=$2, email=$3, device_name=$4 WHERE id=$5 RETURNING *",
+        [name, phone, email, device_name, id]
       );
-      return res.json({status:"Patient updated"});
+      res.json(result.rows[0]);
+    } else if (req.method === "DELETE") {
+      const { id } = req.body;
+      await client.query("DELETE FROM patients WHERE id=$1", [id]);
+      res.json({ success: true });
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-
-    if(req.method==="DELETE"){
-      await pool.query("DELETE FROM patients WHERE id=$1",[id]);
-      return res.json({status:"Patient deleted"});
-    }
-
-    res.status(405).json({error:"Method not allowed"});
-
-  } catch(e){
-    res.status(401).json({error:e.toString()});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 }
