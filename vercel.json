@@ -1,16 +1,11 @@
 {
   "version": 2,
   "functions": {
-    "api/**/*.js": {
-      "runtime": "vercel/nodejs@24.0.0"
+    "api/*.js": {
+      "runtime": "nodejs24.x"
     }
   },
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
-    }
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
-
-
