@@ -1,40 +1,37 @@
 import pkg from "pg";
 import jwt from "jsonwebtoken";
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:{ rejectUnauthorized:false }
-});
 
-function auth(req){
-  const h=req.headers.authorization;
-  if(!h) throw "No token";
-  const token=h.split(" ")[1];
-  return jwt.verify(token,process.env.JWT_SECRET);
+const { Client } = pkg;
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
+
+function verifyToken(req) {
+  const auth = req.headers.authorization;
+  if (!auth) return null;
+  const token = auth.split(" ")[1];
+  return jwt.verify(token, process.env.JWT_SECRET);
 }
 
-export default async function handler(req,res){
-  try{
-    auth(req);
-    const { device_id, spo2, heartrate } = req.body;
+export default async function handler(req, res) {
+  try {
+    const user = verifyToken(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    if(req.method==="POST"){
-      await pool.query("INSERT INTO health(device_id,spo2,heartrate,created_at) VALUES($1,$2,$3,NOW())",[device_id,spo2,heartrate]);
-      return res.json({status:"Data added"});
+    if (req.method === "GET") {
+      const result = await client.query("SELECT * FROM health ORDER BY recorded_at DESC");
+      res.json(result.rows);
+    } else if (req.method === "POST") {
+      const { patient_id, spo2, heartrate } = req.body;
+      const result = await client.query(
+        "INSERT INTO health(patient_id, spo2, heartrate) VALUES($1,$2,$3) RETURNING *",
+        [patient_id, spo2, heartrate]
+      );
+      res.json(result.rows[0]);
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-
-    if(req.method==="GET"){
-      const r=await pool.query(`SELECT h.*, d.device_name, p.name AS patient
-                                FROM health h
-                                JOIN devices d ON h.device_id=d.id
-                                JOIN patients p ON d.patient_id=p.id
-                                ORDER BY h.created_at DESC`);
-      return res.json(r.rows);
-    }
-
-    res.status(405).json({error:"Method not allowed"});
-
-  }catch(e){
-    res.status(401).json({error:e.toString()});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 }
