@@ -1,45 +1,48 @@
 import pkg from "pg";
 import jwt from "jsonwebtoken";
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:{ rejectUnauthorized:false }
-});
 
-function auth(req){
-  const h=req.headers.authorization;
-  if(!h) throw "No token";
-  const token=h.split(" ")[1];
-  return jwt.verify(token,process.env.JWT_SECRET);
+const { Client } = pkg;
+const client = new Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
+
+function verifyToken(req) {
+  const auth = req.headers.authorization;
+  if (!auth) return null;
+  const token = auth.split(" ")[1];
+  return jwt.verify(token, process.env.JWT_SECRET);
 }
 
-export default async function handler(req,res){
-  try{
-    auth(req);
-    const { device_name, patient_id, id }=req.body;
+export default async function handler(req, res) {
+  try {
+    const user = verifyToken(req);
+    if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-    if(req.method==="POST"){
-      await pool.query("INSERT INTO devices(device_name,patient_id) VALUES($1,$2)",[device_name,patient_id]);
-      return res.json({status:"Device added"});
+    if (req.method === "GET") {
+      const result = await client.query("SELECT * FROM devices");
+      res.json(result.rows);
+    } else if (req.method === "POST") {
+      const { name, description } = req.body;
+      const result = await client.query(
+        "INSERT INTO devices(name, description) VALUES($1,$2) RETURNING *",
+        [name, description]
+      );
+      res.json(result.rows[0]);
+    } else if (req.method === "PUT") {
+      const { id, name, description } = req.body;
+      const result = await client.query(
+        "UPDATE devices SET name=$1, description=$2 WHERE id=$3 RETURNING *",
+        [name, description, id]
+      );
+      res.json(result.rows[0]);
+    } else if (req.method === "DELETE") {
+      const { id } = req.body;
+      await client.query("DELETE FROM devices WHERE id=$1", [id]);
+      res.json({ success: true });
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-
-    if(req.method==="GET"){
-      const r=await pool.query("SELECT d.id,d.device_name,p.name AS patient FROM devices d JOIN patients p ON d.patient_id=p.id");
-      return res.json(r.rows);
-    }
-
-    if(req.method==="PUT"){
-      await pool.query("UPDATE devices SET device_name=$1,patient_id=$2 WHERE id=$3",[device_name,patient_id,id]);
-      return res.json({status:"Device updated"});
-    }
-
-    if(req.method==="DELETE"){
-      await pool.query("DELETE FROM devices WHERE id=$1",[id]);
-      return res.json({status:"Device deleted"});
-    }
-
-    res.status(405).json({error:"Method not allowed"});
-  }catch(e){
-    res.status(401).json({error:e.toString()});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 }
