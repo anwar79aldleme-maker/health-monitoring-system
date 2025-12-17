@@ -1,13 +1,8 @@
 async function login() {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
   const errorP = document.getElementById("error");
   errorP.textContent = "";
-
-  if (!email || !password) {
-    errorP.textContent = "Please enter email and password";
-    return;
-  }
 
   try {
     const res = await fetch("/api/auth", {
@@ -17,18 +12,13 @@ async function login() {
     });
 
     const data = await res.json();
-
     if (res.status === 200 && data.token) {
-      // حفظ التوكن
       localStorage.setItem("token", data.token);
-      // تحويل المستخدم إلى صفحة المرضى
       window.location.href = "patients.html";
     } else {
-      // عرض الخطأ
-      errorP.textContent = data.error || "Login failed";
+      errorP.textContent = data.error;
     }
   } catch (err) {
-    console.error(err);
     errorP.textContent = "Server error";
   }
 }
