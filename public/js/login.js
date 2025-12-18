@@ -5,18 +5,17 @@ function login() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      email: document.getElementById("email").value.trim(),
-      password: document.getElementById("password").value.trim()
+      email: email.value,
+      password: password.value
     })
   })
-  .then(res => {
-    if (res.status === 401) throw "Wrong email or password";
-    if (!res.ok) throw "Server error";
-    return res.json();
-  })
-  .then(data => {
-    localStorage.setItem("token", data.token);
-    location.href = "patients.html";
-  })
-  .catch(err => alert(err));
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      localStorage.setItem("logged", "true");
+      location.href = "patients.html";
+    } else {
+      alert(d.error);
+    }
+  });
 }
