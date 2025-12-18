@@ -1,29 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Patients</title>
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-<div class="container">
-  <h2>Patients</h2>
-  <button onclick="logout()">Logout</button>
-  <div>
-    <input id="name" placeholder="Name">
-    <input id="phone" placeholder="Phone">
-    <input id="email" placeholder="Email">
-    <input id="device_name" placeholder="Device Name">
-    <button onclick="addPatient()">Add Patient</button>
-  </div>
-  <input id="search" placeholder="Search" oninput="searchPatient()">
-  <table border="1" id="patientsTable">
-    <thead>
-      <tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Device</th><th>Actions</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+<h2>Patients</h2>
+
+<input id="search" placeholder="Search by name">
+<button onclick="loadPatients()">Refresh</button>
+<button onclick="logout()">Logout</button>
+
+<form onsubmit="addPatient(event)">
+  <input id="name" placeholder="Name">
+  <input id="phone" placeholder="Phone">
+  <input id="email" placeholder="Email">
+  <input id="device" placeholder="Device Name">
+  <button>Add</button>
+</form>
+
+<table border="1">
+  <thead>
+    <tr><th>Name</th><th>Phone</th><th>Email</th><th>Device</th><th>Action</th></tr>
+  </thead>
+  <tbody id="patients"></tbody>
+</table>
+
 <script src="js/patients.js"></script>
-</body>
-</html>
