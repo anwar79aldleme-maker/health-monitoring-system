@@ -12,11 +12,12 @@ export default async function handler(req, res) {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Missing email or password" });
+    return res.status(400).json({ error: "Missing fields" });
   }
 
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
   });
 
   await client.connect();
@@ -33,10 +34,9 @@ export default async function handler(req, res) {
   }
 
   const user = result.rows[0];
+  const ok = await bcrypt.compare(password, user.password);
 
-  const validPassword = await bcrypt.compare(password, user.password);
-
-  if (!validPassword) {
+  if (!ok) {
     return res.status(401).json({ error: "Wrong email or password" });
   }
 
