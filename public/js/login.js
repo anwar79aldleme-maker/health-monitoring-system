@@ -1,4 +1,3 @@
-
 function login(){
  fetch("/api/auth",{
   method:"POST",
